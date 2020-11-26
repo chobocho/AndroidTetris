@@ -15,7 +15,7 @@ import com.chobocho.tetris.Score;
 
 import static android.content.Context.MODE_PRIVATE;
 
-public class TetrisViewForN8 extends View implements PlayerObserver {
+public class TetrisView extends View implements PlayerObserver {
     private String LOG_TAG = this.getClass().getName();
     private Context mContext;
     private Player player;
@@ -24,28 +24,24 @@ public class TetrisViewForN8 extends View implements PlayerObserver {
     private Score playerScore;
 
     private int highScore = 0;
-    private float scaleX = 1.0f;
-    private float scaleY = 1.0f;
-    private boolean isSetScale = false;
-    private boolean needScaleCanvas = false;
 
     private static final int EMPTY_MESSAGE = 0;
     private HandlerThread playerHandlerThread;
     private Handler playerHandler;
+    private BoardProfile profile;
 
-    public TetrisViewForN8(Context context, Player player) {
+    public TetrisView(Context context, Player player, BoardProfile profile) {
         super(context);
         this.mContext = context;
-        isSetScale = false;
-        needScaleCanvas = false;
+        this.profile = profile;
 
         createPlayerThread();
 
         loadHIghScore();
 
         this.player = player;
-        playerInput = new PlayerInputImplForN8();
-        playerUI = new PlayerUIForN8(mContext);
+        playerInput = new PlayerInputImpl(profile);
+        playerUI = new PlayerDrawImpl(mContext, profile);
         playerScore = new PlayerScoreImpl();
         playerScore.setHighScore(this.highScore);
 
@@ -54,6 +50,8 @@ public class TetrisViewForN8 extends View implements PlayerObserver {
         player.setSCore(playerScore);
         player.register(this);
         player.init();
+
+        setScreenSize(profile.screenWidth(), profile.screenHeight());
     }
 
     private void createPlayerThread() {
@@ -115,21 +113,6 @@ public class TetrisViewForN8 extends View implements PlayerObserver {
             return;
         }
 
-        if (!isSetScale) {
-            scaleX = canvas.getWidth() / 1080f;
-            scaleY = canvas.getHeight() / 1920f;
-            isSetScale = true;
-
-            if (scaleX <= 0.999f) {
-                needScaleCanvas = true;
-                Log.d(LOG_TAG, "Resolution of device is smaller than 1080");
-            }
-        }
-
-        if (needScaleCanvas) {
-            canvas.scale(scaleX, scaleY);
-        }
-
         playerUI.onDraw(canvas);
     }
 
@@ -143,15 +126,8 @@ public class TetrisViewForN8 extends View implements PlayerObserver {
             return false;
         }
 
-        Log.d(LOG_TAG, ">> scaleX: " + scaleX + " scaleY: " + scaleY);
-
         int x = (int) (event.getX());
         int y = (int) (event.getY());
-
-        if (needScaleCanvas) {
-            x = (int) (x / scaleX);
-            y = (int) (y / scaleY);
-        }
 
         Log.d(LOG_TAG, ">> X: " + x + " Y: " + y);
         return playerInput.touch(x, y);
